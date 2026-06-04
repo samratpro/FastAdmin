@@ -1,0 +1,13 @@
+fastapi[standard]
+sqlalchemy>=2.0.0
+aiosqlite
+asyncpg
+aiomysql
+pydantic>=2.0.0
+pydantic-settings
+PyJWT
+passlib[bcrypt]
+slowapi
+python-multipart
+fastapi-mail
+alembic>=1.13.0
