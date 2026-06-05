@@ -46,8 +46,6 @@ def _get_url() -> str:
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif url.startswith("mysql://"):
-        url = url.replace("mysql://", "mysql+aiomysql://", 1)
     return url
 
 

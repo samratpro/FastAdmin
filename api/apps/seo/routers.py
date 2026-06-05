@@ -207,11 +207,14 @@ async def upload_seo_image(
     user=Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
+    ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
     if type not in ["og", "twitter"]:
         raise HTTPException(status_code=400, detail="type must be 'og' or 'twitter'")
     upload_dir = Path(__file__).resolve().parent.parent.parent / "uploads" / "seo"
     upload_dir.mkdir(parents=True, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".jpg"
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    if ext not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(status_code=400, detail=f'File type "{ext}" not allowed')
     safe_slug = slug.strip("/").replace("/", "_")
     filename = f"{safe_slug}_{type}{ext}"
     dest = upload_dir / filename

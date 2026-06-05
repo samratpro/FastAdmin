@@ -146,7 +146,11 @@ async def list_model_data(
     if not model_cls:
         raise HTTPException(status_code=404, detail="Model not found")
 
-    qs = model_cls.objects(db).order_by(orderBy, orderDirection).limit(limit).offset((page - 1) * limit)
+    valid_fields = {c.key for c in model_cls.__table__.columns}
+    safe_order_by = orderBy if orderBy in valid_fields else "id"
+    safe_order_dir = "DESC" if orderDirection.upper() == "DESC" else "ASC"
+
+    qs = model_cls.objects(db).order_by(safe_order_by, safe_order_dir).limit(limit).offset((page - 1) * limit)
     data = await qs.all()
     total = await model_cls.objects(db).count()
 
@@ -237,7 +241,8 @@ async def delete_model_data(
 async def list_users(db: AsyncSession = Depends(get_db), user=Depends(require_staff)):
     from apps.auth.models import User
     users = await User.objects(db).order_by("id", "ASC").all()
-    return {"users": [u.to_dict() for u in users]}
+    safe = [{k: v for k, v in u.to_dict().items() if k != "password"} for u in users]
+    return {"users": safe}
 
 
 @router.get("/groups")
@@ -339,11 +344,14 @@ async def upload_settings_file(
 ):
     from apps.settings.models import SiteSetting
     import os
+    ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".ico"}
     if type not in ["logo", "favicon"]:
         raise HTTPException(status_code=400, detail="type must be 'logo' or 'favicon'")
     upload_dir = Path(__file__).resolve().parent.parent.parent / "uploads" / "settings"
     upload_dir.mkdir(parents=True, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".png"
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".png"
+    if ext not in ALLOWED_EXTS:
+        raise HTTPException(status_code=400, detail=f'File type "{ext}" not allowed')
     dest = upload_dir / f"{type}{ext}"
     content = await file.read()
     dest.write_bytes(content)

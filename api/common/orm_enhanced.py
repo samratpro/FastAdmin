@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Optional
-from sqlalchemy import select, func, and_
+from typing import Any, Dict, List, Optional, Type
+from sqlalchemy import select, func, and_, asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.orm import Model
 

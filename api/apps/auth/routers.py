@@ -133,9 +133,8 @@ async def verify_email(payload: dict, db: AsyncSession = Depends(get_db)):
     token = payload.get("token", "")
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
-    # Decode the token to get userId
     data = decode_token(token)
-    if not data or "userId" not in data:
+    if not data or "userId" not in data or data.get("purpose") != "verify":
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
     user = await User.objects(db).filter(id=data["userId"]).first()
     if not user:
@@ -191,5 +190,5 @@ async def change_password(payload: dict, user: User = Depends(get_current_user),
 @router.post("/logout")
 async def logout(response: Response):
     response.delete_cookie("accessToken")
-    response.delete_cookie("refreshToken")
+    response.delete_cookie("refreshToken", path="/auth/refresh")
     return {"success": True, "message": "Logged out successfully"}

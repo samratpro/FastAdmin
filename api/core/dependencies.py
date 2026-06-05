@@ -83,21 +83,35 @@ async def require_superuser(user: User = Depends(get_current_user)):
 def require_permission(codename: str):
     """
     Higher-order dependency to check for a specific permission.
+    Uses direct SQL queries — avoids lazy-loading relationships in async context.
     """
     async def permission_checker(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
         if user.is_superuser:
             return user
 
-        # Check direct permissions
-        for perm in user.permissions:
-            if perm.codename == codename:
-                return user
+        from sqlalchemy import select
+        from apps.auth.models import UserPermission, GroupPermission, UserGroup, Permission
 
-        # Check group permissions
-        for group in user.groups:
-            for perm in group.permissions:
-                if perm.codename == codename:
-                    return user
+        # Direct user permission
+        stmt = (
+            select(Permission.id)
+            .join(UserPermission, UserPermission.permission_id == Permission.id)
+            .where(UserPermission.user_id == user.id, Permission.codename == codename)
+            .limit(1)
+        )
+        if (await db.execute(stmt)).scalar_one_or_none() is not None:
+            return user
+
+        # Group permission
+        stmt = (
+            select(Permission.id)
+            .join(GroupPermission, GroupPermission.permission_id == Permission.id)
+            .join(UserGroup, UserGroup.group_id == GroupPermission.group_id)
+            .where(UserGroup.user_id == user.id, Permission.codename == codename)
+            .limit(1)
+        )
+        if (await db.execute(stmt)).scalar_one_or_none() is not None:
+            return user
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

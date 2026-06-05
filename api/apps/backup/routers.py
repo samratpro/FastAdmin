@@ -155,7 +155,10 @@ async def get_databases(user=Depends(require_superuser)):
 
 @router.get("/download-db")
 async def download_db_file(dbPath: str = Query(...), user=Depends(require_superuser)):
-    p = Path(dbPath)
+    p = Path(dbPath).resolve()
+    api_root = _api_root().resolve()
+    if not str(p).startswith(str(api_root)):
+        raise HTTPException(status_code=403, detail="Access denied")
     if not p.exists() or not p.is_file():
         raise HTTPException(status_code=404, detail="Database file not found")
     return FileResponse(

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "change-me-in-production"
 
-    # Database
+    # Database — only sqlite and postgresql are supported
     DB_ENGINE: str = "sqlite"
     DB_PATH: str = "./db.sqlite3"
     DATABASE_URL: str = ""
